@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>지질시대 생물 추리 퀴즈</title>
+    <style>
+        :root {
+            --bg-color: #f8f9fa;
+            --card-bg: #ffffff;
+            --border-color: #e9ecef;
+            --text-main: #212529;
+            --text-sub: #6c757d;
+            --silhouette-color: #000000;
+            --accent-purple: #7950f2;
+            --accent-hover: #6741d9;
+            --correct-bg: #d3f9d8;
+            --correct-text: #2b8a3e;
+            --incorrect-bg: #ffe3e3;
+            --incorrect-text: #c92a2a;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 850px;
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            padding: 24px;
+        }
+
+        .screen {
+            width: 100%;
+            max-width: 850px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+            padding: 36px;
+        }
+
+        .screen h1 { margin-bottom: 14px; }
+        .screen h2 { margin: 24px 0 10px; }
+        .screen p { line-height: 1.7; color: var(--text-sub); }
+        .description-list { padding-left: 22px; line-height: 1.8; color: var(--text-main); }
+        .score-note { background: #f1f3f5; border-radius: 10px; padding: 14px 16px; margin-top: 12px; }
+        .result-rank { font-size: 2rem; font-weight: 800; color: var(--accent-purple); margin: 24px 0 8px; }
+        .result-score { font-size: 1.1rem; color: var(--text-sub); }
+        .result-creature-image { width: 280px; height: 190px; object-fit: contain; display: block; margin: 20px auto 10px; border-radius: 22px; padding: 8px; box-sizing: border-box; background: #fff; box-shadow: 0 8px 18px rgba(31, 41, 55, 0.12); filter: saturate(0.92) contrast(0.96); }
+        .center-action { text-align: center; margin-top: 28px; }
+        .count-tile { background: #f1f3f5; border-radius: 10px; padding: 16px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; border: 1px solid var(--border-color); }
+        .count-circle { width: 34px; height: 34px; border-radius: 50%; background: var(--accent-purple); color: white; display: inline-flex; align-items: center; justify-content: center; font-size: 0.85rem; font-weight: 800; line-height: 1; }
+        #intro-screen, #game-screen, #result-screen { display: none; }
+
+        /* Top Header & Search Bar */
+        .top-bar {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+            align-items: center;
+        }
+
+        .search-input {
+            flex: 1;
+            padding: 12px 18px;
+            border: 2px solid var(--border-color);
+            border-radius: 10px;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .search-input:focus {
+            border-color: var(--accent-purple);
+        }
+
+        .btn {
+            background-color: var(--accent-purple);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .btn:hover {
+            background-color: var(--accent-hover);
+        }
+
+        .btn-sub {
+            background-color: #e9ecef;
+            color: var(--text-main);
+        }
+
+        .btn-sub:hover {
+            background-color: #dee2e6;
+        }
+
+        /* Notice Banner */
+        .status-banner {
+            display: none;
+            padding: 14px;
+            border-radius: 10px;
+            text-align: center;
+            font-weight: 700;
+            margin-bottom: 20px;
+        }
+
+        .status-banner.correct {
+            display: block;
+            background-color: var(--correct-bg);
+            color: var(--correct-text);
+        }
+
+        .status-banner.incorrect {
+            display: block;
+            background-color: var(--incorrect-bg);
+            color: var(--incorrect-text);
+        }
+
+        /* Layout Grid */
+        .main-content {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Left Panel - Silhouette */
+        .left-panel {
+            background-color: #f1f3f5;
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 300px;
+            cursor: pointer;
+            border: 2px dashed #dee2e6;
+            transition: border-color 0.2s;
+        }
+
+        .left-panel.unlocked {
+            border-style: solid;
+            border-color: var(--border-color);
+            cursor: default;
+        }
+
+        .silhouette-box {
+            font-size: 5rem;
+            color: var(--text-sub);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .silhouette-svg {
+            width: 140px;
+            height: 140px;
+            fill: var(--silhouette-color);
+            display: none;
+        }
+
+        .silhouette-detail {
+            fill: none;
+            stroke: #000000;
+            stroke-width: 1.6;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .fossil-silhouette { filter: sepia(0.35) contrast(1.25); background: rgba(255,255,255,0.14); border-radius: 8px; }
+
+        .creature-image {
+            width: 180px;
+            height: 140px;
+            object-fit: contain;
+            border-radius: 22px;
+            padding: 8px;
+            box-sizing: border-box;
+            display: none;
+            margin-bottom: 12px;
+            background: #fff;
+            box-shadow: 0 8px 18px rgba(31, 41, 55, 0.12);
+            filter: saturate(0.92) contrast(0.96);
+        }
+
+        .creature-image.silhouette-image { filter: grayscale(1) brightness(0); }
+
+        .panel-label {
+            font-size: 0.85rem;
+            color: var(--text-sub);
+            font-weight: 600;
+        }
+
+        /* Right Panel - Attribute Tiles */
+        .right-panel {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .tile {
+            background-color: #f1f3f5;
+            border-radius: 10px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            cursor: pointer;
+            border: 1px solid var(--border-color);
+            transition: background-color 0.2s, transform 0.1s;
+            user-select: none;
+        }
+
+        .tile:hover:not(.revealed) {
+            background-color: #e9ecef;
+            transform: translateY(-2px);
+        }
+
+        .tile.revealed {
+            background-color: var(--card-bg);
+            border-color: var(--accent-purple);
+            cursor: default;
+        }
+
+        .tile-title {
+            font-size: 0.8rem;
+            color: var(--text-sub);
+            margin-bottom: 6px;
+        }
+
+        .tile-value {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .color-swatch {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            border: 3px solid rgba(0, 0, 0, 0.15);
+            box-shadow: inset 0 0 0 2px rgba(255,255,255,0.35), 0 2px 6px rgba(0,0,0,0.12);
+            display: inline-block;
+        }
+
+        .tile-mask {
+            font-size: 1.2rem;
+            color: var(--text-sub);
+            font-weight: bold;
+        }
+
+        .action-row {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 16px;
+        }
+    </style>
+</head>
+<body>
+
+<section id="start-screen" class="screen">
+    <h1>지질시대 생물 추리 퀴즈</h1>
+    <p>힌트를 확인하며 지질시대의 생물을 맞혀보세요.</p>
+    <div class="center-action">
+        <button class="btn" onclick="showIntroScreen()">시작하기</button>
+    </div>
+</section>
+
+<section id="intro-screen" class="screen">
+    <h1>지질시대 생물 추리 퀴즈</h1>
+    <p>힌트를 확인하며 지질시대의 생물을 맞혀보세요.</p>
+
+    <h2>게임 설명</h2>
+    <ol class="description-list">
+        <li>이 게임은 포켓피디아의 게임을 참고하여 만들었습니다.</li>
+        <li>힌트를 보고 지질시대의 생물을 맞히는 게임입니다.</li>
+        <li>힌트는 실루엣과 생물의 특징으로 구성되어 있습니다.</li>
+    </ol>
+
+    <h2>점수 시스템</h2>
+    <p class="score-note">힌트를 적게 열수록 높은 등급을 받습니다.<br>1개: 과학박사 · 2~3개: 수능 대박 · 4~5개: 과학 3등급 · 6~7개: 과학 5등급 · 8개 이상: 임종주 (IQ 97)</p>
+
+    <div class="center-action">
+        <button class="btn" onclick="startGame()">게임 시작</button>
+    </div>
+</section>
+
+<div id="game-screen" class="container">
+    <!-- 상단 검색 및 추측 영역 -->
+    <div class="top-bar">
+        <input type="text" id="creature-input" class="search-input" placeholder="생물 이름을 입력하세요 (예: 삼엽충)" onkeydown="checkEnter(event)">
+        <button class="btn" onclick="submitGuess()">추측</button>
+        <button class="btn secondary-btn" onclick="giveUp()">포기</button>
+    </div>
+
+    <!-- 정답/오답 결과 안내 메시지 -->
+    <div id="status-banner" class="status-banner"></div>
+
+    <!-- 메인 힌트 칸 영역 -->
+    <div class="main-content">
+        <!-- 왼쪽: 실루엣 힌트 -->
+        <div id="left-panel" class="left-panel" onclick="revealSilhouette()">
+            <div id="silhouette-mask" class="silhouette-box">?</div>
+                <svg id="silhouette-svg" class="silhouette-svg fossil-silhouette" viewBox="0 0 100 100">
+                <!-- 단순화된 생물 형상 스케치 SVG -->
+                <path id="svg-path" d="M50,15 C25,15 15,35 15,55 C15,75 30,85 50,85 C70,85 85,75 85,55 C85,35 75,15 50,15 Z M30,45 C35,45 35,50 30,50 Z M70,45 C65,45 65,50 70,50 Z M35,70 C50,80 65,70 65,70 Z" />
+                <path id="silhouette-detail" class="silhouette-detail" />
+            </svg>
+            <img id="creature-image" class="creature-image" alt="정답 생물 사진">
+            <div id="silhouette-label" class="panel-label">클릭하여 실루엣 힌트 열기</div>
+        </div>
+
+        <!-- 오른쪽: 세부 속성 힌트 (자잘한 힌트 칸) -->
+        <div class="right-panel" id="right-panel">
+            <!-- 자바스크립트로 동적 생성됩니다 -->
+        </div>
+    </div>
+
+    <!-- 상단/하단 보조 컨트롤 -->
+</div>
+
+<section id="result-screen" class="screen">
+    <h1>게임 결과</h1>
+    <p>힌트를 적게 사용할수록 더 높은 등급을 받습니다.</p>
+    <img id="result-creature-image" class="result-creature-image" alt="맞힌 생물 사진">
+    <p><strong>최종 등급</strong></p>
+    <div id="result-rank" class="result-rank"></div>
+    <div id="result-score" class="result-score"></div>
+    <div class="center-action">
+        <button class="btn" onclick="showStartScreen()">다시 시작</button>
+    </div>
+</section>
+
+<script>
+    // 생물 데이터베이스
+    const creatureDatabase = [
+        {
+            name: "삼엽충",
+            silhouetteUrl: "silhouettes/trilobite.svg",
+            imageUrl: "https://commons.wikimedia.org/wiki/Special:FilePath/Trilobite%20fossil.jpg",
+            attributes: [
+                { title: "지질시대", value: "고생대" },
+                { title: "출현 시기", value: "캄브리아기" },
+                { title: "주요 서식지", value: "얕은 바다" },
+                { title: "대표 특징", value: "몸이 머리·가슴·꼬리 3부분으로 나뉨" },
+                { title: "지표 구분", value: "표준화석" },
+                { title: "먹이/식성", value: "해저 유기물·작은 생물" },
+                { title: "대표 색깔", value: "짙은 갈색", color: "#6b4226" },
+                { title: "크기", value: "약 2~70cm" },
+                { title: "몸무게", value: "약 10~500g" }
+            ],
+            svgPath: "M50,8 C30,8 16,22 16,40 C16,48 20,54 16,62 C13,70 20,82 34,86 L40,92 L46,86 L50,94 L54,86 L60,92 L66,86 C80,82 87,70 84,62 C80,54 84,48 84,40 C84,22 70,8 50,8 Z M24,30 H76 M20,42 H80 M20,54 H80 M22,66 H78 M30,78 H70"
+            , detailPath: "M50 12 V88 M31 20 V80 M69 20 V80 M20 35 C35 40 65 40 80 35 M18 50 C34 55 66 55 82 50 M20 65 C35 70 65 70 80 65"
+        },
+        {
+            name: "암모나이트",
+            silhouetteUrl: "silhouettes/ammonite.svg",
+            imageUrl: "https://commons.wikimedia.org/wiki/Special:FilePath/Ammonite%20fossil.jpg",
+            attributes: [
+                { title: "지질시대", value: "중생대" },
+                { title: "출현 시기", value: "트라이아스기" },
+                { title: "주요 서식지", value: "바다" },
+                { title: "대표 특징", value: "나선형의 단단한 껍데기를 가짐" },
+                { title: "지표 구분", value: "표준화석" },
+                { title: "먹이/식성", value: "작은 해양 생물" },
+                { title: "대표 색깔", value: "아이보리색", color: "#f1e4c3" },
+                { title: "크기", value: "지름 약 5~50cm" },
+                { title: "몸무게", value: "약 100g~10kg" }
+            ],
+            svgPath: "M50,10 C27,10 12,27 12,50 C12,74 29,90 50,90 C73,90 88,74 88,51 C88,31 73,18 56,18 C38,18 25,31 25,47 C25,63 37,73 51,73 C64,73 74,64 74,52 C74,41 65,34 55,34 C45,34 38,41 38,50 C38,57 43,61 50,61 C56,61 60,57 60,52 C60,48 57,45 53,45 C49,45 47,48 47,51 C47,53 49,55 51,55"
+            , detailPath: "M19 31 C35 22 56 25 68 35 M15 62 C27 78 48 84 66 76 M32 47 C42 42 55 44 61 51"
+        },
+        {
+            name: "매머드",
+            silhouetteUrl: "silhouettes/mammoth.svg",
+            imageUrl: "https://commons.wikimedia.org/wiki/Special:FilePath/Woolly%20mammoth.jpg",
+            attributes: [
+                { title: "지질시대", value: "신생대" },
+                { title: "출현 시기", value: "제4기 (빙하기)" },
+                { title: "주요 서식지", value: "차가운 초원·툰드라" },
+                { title: "대표 특징", value: "긴 털과 커다랗게 휜 엄니" },
+                { title: "지표 구분", value: "표준화석" },
+                { title: "먹이/식성", value: "풀·나뭇잎을 먹는 초식" },
+                { title: "대표 색깔", value: "갈색", color: "#6b4226" },
+                { title: "크기", value: "어깨높이 약 2.7~3.4m" },
+                { title: "몸무게", value: "약 4~6톤" }
+            ],
+            svgPath: ""
+            , detailPath: ""
+        },
+        {
+            name: "화폐석",
+            imageUrl: "answer-images/nummulite.png",
+            silhouetteUrl: "silhouettes/nummulite.svg",
+            attributes: [
+                { title: "지질시대", value: "신생대" },
+                { title: "출현 시기", value: "팔레오기" },
+                { title: "주요 서식지", value: "따뜻한 얕은 바다" },
+                { title: "대표 특징", value: "동전처럼 둥글고 납작한 화석" },
+                { title: "지표 구분", value: "표준화석" },
+                { title: "먹이/식성", value: "미세한 유기물" },
+                { title: "대표 색깔", value: "황갈색", color: "#9a6a3a" },
+                { title: "크기", value: "약 1~10cm" },
+                { title: "몸무게", value: "약 5~100g" }
+            ],
+            svgPath: "M50 10 C27 10 10 27 10 50 C10 73 27 90 50 90 C73 90 90 73 90 50 C90 27 73 10 50 10 Z M20 50 C35 42 65 42 80 50 M20 50 C35 58 65 58 80 50 M50 20 C42 35 42 65 50 80 M50 20 C58 35 58 65 50 80",
+            detailPath: "M18 35 C35 25 65 25 82 35 M18 65 C35 75 65 75 82 65"
+        },
+        {
+            name: "고사리",
+            imageUrl: "answer-images/fern.png",
+            silhouetteUrl: "silhouettes/fern.svg",
+            attributes: [
+                { title: "지질시대", value: "고생대" },
+                { title: "출현 시기", value: "석탄기" },
+                { title: "주요 서식지", value: "습하고 따뜻한 육지" },
+                { title: "대표 특징", value: "깃털 모양 잎과 포자 번식" },
+                { title: "지표 구분", value: "식물 화석" },
+                { title: "먹이/식성", value: "광합성" },
+                { title: "대표 색깔", value: "짙은 녹색", color: "#2f7d32" },
+                { title: "크기", value: "약 30cm~5m" },
+                { title: "몸무게", value: "약 100g~20kg" }
+            ],
+            svgPath: "M50 90 C48 70 49 48 50 12 M50 38 C38 30 27 30 18 36 M50 50 C38 43 27 44 15 52 M50 62 C38 56 26 58 14 68 M50 38 C62 30 73 30 82 36 M50 50 C62 43 73 44 85 52 M50 62 C62 56 74 58 86 68",
+            detailPath: "M18 36 L28 28 M15 52 L26 43 M14 68 L25 57 M82 36 L72 28 M85 52 L74 43 M86 68 L75 57"
+        },
+        {
+            name: "갑주어", photoUrl: "answer-images/armored-fish.png",
+            imageUrl: "silhouettes/paleo-animals.svg", silhouetteUrl: "silhouettes/paleo-animals.svg",
+            attributes: [
+                { title: "지질시대", value: "고생대" }, { title: "출현 시기", value: "실루리아기" },
+                { title: "주요 서식지", value: "고대 바다" }, { title: "대표 특징", value: "단단한 머리 갑옷을 가진 초기 어류" },
+                { title: "지표 구분", value: "어류 화석" }, { title: "먹이/식성", value: "작은 생물과 유기물" },
+                { title: "대표 색깔", value: "갈색", color: "#8a6b4f" }, { title: "크기", value: "약 30cm~1m" }, { title: "몸무게", value: "약 1~15kg" }
+            ], svgPath: "", detailPath: ""
+        },
+        {
+            name: "남세균", photoUrl: "https://commons.wikimedia.org/wiki/Special:FilePath/Cyanobacteria.jpg",
+            imageUrl: "silhouettes/cyanobacteria.svg", silhouetteUrl: "silhouettes/cyanobacteria.svg",
+            attributes: [
+                { title: "지질시대", value: "선캄브리아 시대" }, { title: "출현 시기", value: "약 35억 년 전" },
+                { title: "주요 서식지", value: "얕은 바다와 민물" }, { title: "대표 특징", value: "광합성을 하는 미세한 세균" },
+                { title: "지표 구분", value: "미세 화석" }, { title: "먹이/식성", value: "광합성" },
+                { title: "대표 색깔", value: "청록색", color: "#4f9b63" }, { title: "크기", value: "약 1~10μm" }, { title: "몸무게", value: "측정하기 어려운 미세량" }
+            ], svgPath: "", detailPath: ""
+        },
+        {
+            name: "에디아카라 생물군", photoUrl: "https://commons.wikimedia.org/wiki/Special:FilePath/Dickinsonia%20costata.jpg",
+            imageUrl: "silhouettes/ediacara.svg", silhouetteUrl: "silhouettes/ediacara.svg",
+            attributes: [
+                { title: "지질시대", value: "선캄브리아 시대" }, { title: "출현 시기", value: "에디아카라기" },
+                { title: "주요 서식지", value: "얕은 바다 바닥" }, { title: "대표 특징", value: "잎사귀처럼 납작하고 몸이 분절됨" },
+                { title: "지표 구분", value: "표준화석" }, { title: "먹이/식성", value: "해저 유기물 흡수" },
+                { title: "대표 색깔", value: "연갈색", color: "#a98a70" }, { title: "크기", value: "수 cm~수 m" }, { title: "몸무게", value: "약 10g~수 kg" }
+            ], svgPath: "", detailPath: ""
+        },
+        {
+            name: "스트로마톨라이트", photoUrl: "https://commons.wikimedia.org/wiki/Special:FilePath/Stromatolite.jpg",
+            imageUrl: "silhouettes/stromatolite.svg", silhouetteUrl: "silhouettes/stromatolite.svg",
+            attributes: [
+                { title: "지질시대", value: "선캄브리아 시대" }, { title: "출현 시기", value: "약 35억 년 전" },
+                { title: "주요 서식지", value: "햇빛이 드는 얕은 바다" }, { title: "대표 특징", value: "남세균이 만든 층층의 돔 모양 구조" },
+                { title: "지표 구분", value: "생물 활동 화석" }, { title: "먹이/식성", value: "광합성 미생물 군집" },
+                { title: "대표 색깔", value: "회녹색", color: "#789579" }, { title: "크기", value: "수 cm~수 m" }, { title: "몸무게", value: "약 1kg~수백 kg" }
+            ], svgPath: "", detailPath: ""
+        },
+        {
+            name: "스피노사우루스", shortName: "스피노", aliases: ["스피노", "스피노 사우르스", "스피노사우르스"], photoUrl: "https://cdn.myshoptet.com/usr/www.fosilie-shop.cz/user/documents/upload/dinosauri-atlas/spinosaurus/spinosaur-dravy-dinosaurus-moderni-rekostrukce.jpg",
+            imageUrl: "silhouettes/spinosaurus.svg", silhouetteUrl: "silhouettes/spinosaurus.svg",
+            attributes: [
+                { title: "지질시대", value: "중생대" }, { title: "출현 시기", value: "백악기" },
+                { title: "주요 서식지", value: "북아프리카의 강과 습지" }, { title: "대표 특징", value: "등의 돛과 긴 주둥이를 가진 대형 공룡" },
+                { title: "지표 구분", value: "공룡 화석" }, { title: "먹이/식성", value: "물고기를 먹는 육식" },
+                { title: "대표 색깔", value: "갈색과 붉은색", color: "#8a6251" }, { title: "크기", value: "약 14~16m" }, { title: "몸무게", value: "약 7~9톤" }
+            ], svgPath: "", detailPath: ""
+        },
+        {
+            name: "방추충", photoUrl: "https://commons.wikimedia.org/wiki/Special:FilePath/Fusulinid.jpg", imageUrl: "silhouettes/fusulinid.svg", silhouetteUrl: "silhouettes/fusulinid.svg",
+            attributes: [
+                { title: "지질시대", value: "고생대" }, { title: "출현 시기", value: "석탄기~페름기" },
+                { title: "주요 서식지", value: "따뜻한 얕은 바다" }, { title: "대표 특징", value: "방추 모양의 단세포 유공충 화석" },
+                { title: "지표 구분", value: "표준화석" }, { title: "먹이/식성", value: "미세 유기물" },
+                { title: "대표 색깔", value: "황갈색", color: "#d1a66e" }, { title: "크기", value: "약 1~2cm" }, { title: "몸무게", value: "수 mg" }
+            ], svgPath: "", detailPath: ""
+        },
+        {
+            name: "시조새", photoUrl: "answer-images/archaeopteryx.png", imageUrl: "answer-images/archaeopteryx.png", silhouetteUrl: "silhouettes/archaeopteryx.svg",
+            attributes: [
+                { title: "지질시대", value: "중생대" }, { title: "출현 시기", value: "쥐라기" },
+                { title: "주요 서식지", value: "따뜻한 섬과 숲" }, { title: "대표 특징", value: "깃털과 이빨·발톱을 함께 가진 초기 새" },
+                { title: "지표 구분", value: "전이 화석" }, { title: "먹이/식성", value: "곤충과 작은 동물" },
+                { title: "대표 색깔", value: "회청색", color: "#647789" }, { title: "크기", value: "약 50cm" }, { title: "몸무게", value: "약 0.5kg" }
+            ], svgPath: "", detailPath: ""
+        },
+        {
+            name: "필석", imageUrl: "answer-images/graptolite.png", silhouetteUrl: "silhouettes/graptolite.svg",
+            attributes: [
+                { title: "지질시대", value: "고생대" }, { title: "출현 시기", value: "캄브리아기~석탄기" },
+                { title: "주요 서식지", value: "고대 바다" }, { title: "대표 특징", value: "가지처럼 뻗은 군체를 이루는 해양 생물" },
+                { title: "지표 구분", value: "표준화석" }, { title: "먹이/식성", value: "플랑크톤 여과 섭식" },
+                { title: "대표 색깔", value: "갈색", color: "#765f4e" }, { title: "크기", value: "수 cm~수십 cm" }, { title: "몸무게", value: "약 1~100g" }
+            ], svgPath: "", detailPath: ""
+        },
+        {
+            name: "티라노사우루스", shortName: "티라노", aliases: ["티라노", "티라노사우르스"], photoUrl: "https://i.blogs.es/cb84f6/t-rex-selva/1200_900.jpeg", imageUrl: "silhouettes/tyrannosaurus.svg", silhouetteUrl: "silhouettes/tyrannosaurus.svg",
+            attributes: [
+                { title: "지질시대", value: "중생대" }, { title: "출현 시기", value: "백악기" },
+                { title: "주요 서식지", value: "북아메리카의 숲과 평원" }, { title: "대표 특징", value: "거대한 머리와 강한 턱을 가진 육식 공룡" },
+                { title: "지표 구분", value: "공룡 화석" }, { title: "먹이/식성", value: "육식" },
+                { title: "대표 색깔", value: "갈색", color: "#87624d" }, { title: "크기", value: "약 12m" }, { title: "몸무게", value: "약 5~9톤" }
+            ], svgPath: "", detailPath: ""
+        },
+        {
+            name: "모사사우르스", photoUrl: "answer-images/mosasaurus.png", imageUrl: "answer-images/mosasaurus.png", silhouetteUrl: "silhouettes/mosasaurus.svg",
+            attributes: [
+                { title: "지질시대", value: "중생대" }, { title: "출현 시기", value: "백악기" },
+                { title: "주요 서식지", value: "얕은 바다" }, { title: "대표 특징", value: "긴 몸과 강한 턱을 가진 대형 해양 파충류" },
+                { title: "지표 구분", value: "해양 파충류 화석" }, { title: "먹이/식성", value: "물고기와 해양 동물" },
+                { title: "대표 색깔", value: "청록색", color: "#648d91" }, { title: "크기", value: "약 12~17m" }, { title: "몸무게", value: "약 10~15톤" }
+            ], svgPath: "", detailPath: ""
+        }
+    ];
+
+    let currentIndex = -1;
+    let previousIndex = -1;
+    let silhouetteRevealed = false;
+    let revealedTiles = [];
+    let hintCount = 0;
+
+    function returnToStartScreen() {
+        document.getElementById('start-screen').style.display = 'block';
+        document.getElementById('intro-screen').style.display = 'none';
+        document.getElementById('game-screen').style.display = 'none';
+        document.getElementById('result-screen').style.display = 'none';
+        document.getElementById('creature-input').value = '';
+        currentIndex = -1;
+        silhouetteRevealed = false;
+        revealedTiles = [];
+        hintCount = 0;
+    }
+
+    window.addEventListener('keydown', (event) => {
+        if (event.key === 'F5') {
+            event.preventDefault();
+            returnToStartScreen();
+        }
+    });
+
+    function pickDifferentCreature(excludeIndex) {
+        let nextIndex;
+        do {
+            nextIndex = Math.floor(Math.random() * creatureDatabase.length);
+        } while (creatureDatabase.length > 1 && nextIndex === excludeIndex);
+        return nextIndex;
+    }
+
+    function startGame() {
+        currentIndex = pickDifferentCreature(previousIndex);
+        previousIndex = currentIndex;
+        document.getElementById('start-screen').style.display = 'none';
+        document.getElementById('intro-screen').style.display = 'none';
+        document.getElementById('result-screen').style.display = 'none';
+        document.getElementById('game-screen').style.display = 'block';
+        initGame();
+    }
+
+    function showStartScreen() {
+        document.getElementById('game-screen').style.display = 'none';
+        document.getElementById('result-screen').style.display = 'none';
+        document.getElementById('intro-screen').style.display = 'none';
+        document.getElementById('start-screen').style.display = 'block';
+    }
+
+    function showIntroScreen() {
+        document.getElementById('start-screen').style.display = 'none';
+        document.getElementById('game-screen').style.display = 'none';
+        document.getElementById('result-screen').style.display = 'none';
+        document.getElementById('intro-screen').style.display = 'block';
+    }
+
+    function getRank(count) {
+        if (count <= 1) return '과학박사';
+        if (count <= 3) return '수능 대박';
+        if (count <= 5) return '과학 3등급';
+        if (count <= 7) return '과학 5등급';
+        return '임종주 (IQ 97)';
+    }
+
+    function updateAttemptCounter() {
+        const counter = document.getElementById('attempt-count');
+        if (counter) counter.innerText = hintCount;
+    }
+
+    function showResult(count = hintCount, defeated = false) {
+        const resultImage = document.getElementById('result-creature-image');
+        const creature = creatureDatabase[currentIndex];
+        resultImage.onerror = () => {
+            resultImage.onerror = null;
+            resultImage.src = creature.imageUrl;
+        };
+        resultImage.src = creature.photoUrl || creature.imageUrl;
+        document.getElementById('game-screen').style.display = 'none';
+        document.getElementById('start-screen').style.display = 'none';
+        document.getElementById('intro-screen').style.display = 'none';
+        document.getElementById('result-screen').style.display = 'block';
+        document.getElementById('result-rank').innerText = defeated ? '패배' : getRank(count);
+        document.getElementById('result-score').innerText = defeated
+            ? `정답: ${getDisplayName(creatureDatabase[currentIndex])} · 사용한 힌트: ${count}개`
+            : `사용한 힌트: ${count}개`;
+    }
+
+    function initGame() {
+        const creature = creatureDatabase[currentIndex];
+        silhouetteRevealed = false;
+        revealedTiles = new Array(creature.attributes.length).fill(false);
+        hintCount = 0;
+        updateAttemptCounter();
+
+        // UI Reset
+        document.getElementById('creature-input').value = '';
+        const banner = document.getElementById('status-banner');
+        banner.className = 'status-banner';
+        banner.innerText = '';
+
+        // Reset Left Panel
+        const leftPanel = document.getElementById('left-panel');
+        leftPanel.classList.remove('unlocked');
+        document.getElementById('silhouette-mask').style.display = 'block';
+        document.getElementById('silhouette-svg').style.display = 'none';
+        document.getElementById('creature-image').style.display = 'none';
+        document.getElementById('creature-image').src = '';
+        document.getElementById('creature-image').classList.remove('silhouette-image');
+        document.getElementById('silhouette-label').innerText = '클릭하여 실루엣 힌트 열기';
+        document.getElementById('svg-path').setAttribute('d', creature.svgPath);
+        document.getElementById('silhouette-detail').setAttribute('d', creature.detailPath);
+        const silhouettePath = document.getElementById('svg-path');
+        const silhouetteDetail = document.getElementById('silhouette-detail');
+        const sideViewTransform = '';
+        silhouettePath.setAttribute('transform', sideViewTransform);
+        silhouetteDetail.setAttribute('transform', sideViewTransform);
+
+        // Reset Right Panel Tiles
+        const rightPanel = document.getElementById('right-panel');
+        rightPanel.innerHTML = '';
+        
+        creature.attributes.forEach((attr, idx) => {
+            const tile = document.createElement('div');
+            tile.className = 'tile';
+            tile.id = `tile-${idx}`;
+            tile.onclick = () => revealTile(idx);
+
+            const visualValue = attr.title === '대표 색깔'
+                ? `<span id="tile-val-${idx}" class="color-swatch" title="${attr.value}" style="display:none;background:${attr.color};"></span>`
+                : `<div class="tile-value" id="tile-val-${idx}" style="display:none;">${attr.value}</div>`;
+
+            tile.innerHTML = `
+                <div class="tile-title">${attr.title}</div>
+                <div class="tile-mask" id="tile-mask-${idx}">?</div>
+                ${visualValue}
+            `;
+            rightPanel.appendChild(tile);
+
+            if (attr.title === '크기') {
+                const countTile = document.createElement('div');
+                countTile.className = 'count-tile';
+                countTile.innerHTML = `<div class="tile-title">힌트/오답 횟수</div><span id="attempt-count" class="count-circle">${hintCount}</span>`;
+                rightPanel.appendChild(countTile);
+            }
+        });
+    }
+
+    // 엔터키 확인
+    function checkEnter(event) {
+        if (event.key === 'Enter') {
+            submitGuess();
+        }
+    }
+
+    function normalizeAnswer(value) {
+        return value.replace(/\s+/g, '').replace(/사우르스/g, '사우루스').toLowerCase();
+    }
+
+    function getDisplayName(creature) {
+        return creature.shortName || creature.name;
+    }
+
+    // 추측 제출
+    function submitGuess() {
+        const input = document.getElementById('creature-input').value.trim();
+        const creature = creatureDatabase[currentIndex];
+        const banner = document.getElementById('status-banner');
+
+        if (!input) return;
+
+        const acceptedAnswers = [creature.name, ...(creature.aliases || [])].map(normalizeAnswer);
+        if (acceptedAnswers.includes(normalizeAnswer(input))) {
+            const hintsBeforeAnswer = hintCount;
+            banner.className = 'status-banner correct';
+            banner.innerText = `🎉 정답입니다! 이 생물은 [ ${getDisplayName(creature)} ] 입니다.`;
+            revealAllHints();
+            showResult(hintsBeforeAnswer);
+        } else {
+            hintCount++;
+            updateAttemptCounter();
+            banner.className = 'status-banner incorrect';
+            banner.innerText = `❌ 오답입니다. 다시 추측해 보세요!`;
+        }
+    }
+
+    // 좌측 실루엣 열기 (되돌리기 불가)
+    function revealSilhouette() {
+        if (silhouetteRevealed) return;
+
+        silhouetteRevealed = true;
+        hintCount++;
+        updateAttemptCounter();
+        const leftPanel = document.getElementById('left-panel');
+        leftPanel.classList.add('unlocked');
+
+        document.getElementById('silhouette-mask').style.display = 'none';
+        const creature = creatureDatabase[currentIndex];
+        const silhouetteImage = document.getElementById('creature-image');
+        if (creature.silhouetteUrl) {
+            document.getElementById('silhouette-svg').style.display = 'none';
+            silhouetteImage.src = creature.silhouetteUrl;
+            silhouetteImage.classList.remove('silhouette-image');
+            silhouetteImage.style.display = 'block';
+        } else {
+            silhouetteImage.style.display = 'none';
+            document.getElementById('silhouette-svg').style.display = 'block';
+        }
+        document.getElementById('silhouette-label').innerText = '생물 이미지 힌트';
+    }
+
+    // 우측 타일 열기 (되돌리기 불가)
+    function revealTile(index) {
+        if (revealedTiles[index]) return;
+
+        revealedTiles[index] = true;
+        hintCount++;
+        updateAttemptCounter();
+        const tile = document.getElementById(`tile-${index}`);
+        tile.classList.add('revealed');
+
+        document.getElementById(`tile-mask-${index}`).style.display = 'none';
+        document.getElementById(`tile-val-${index}`).style.display = 'block';
+    }
+
+    // 정답일 때 모든 힌트 공개
+    function revealAllHints() {
+        revealSilhouette();
+        const creature = creatureDatabase[currentIndex];
+        creature.attributes.forEach((_, idx) => revealTile(idx));
+        const image = document.getElementById('creature-image');
+        image.src = creature.imageUrl;
+        image.classList.remove('silhouette-image');
+        image.style.display = 'block';
+        document.getElementById('silhouette-svg').style.display = 'none';
+        document.getElementById('silhouette-label').innerText = '정답 생물 사진';
+    }
+
+    // 정답 보기
+    function giveUp() {
+        const creature = creatureDatabase[currentIndex];
+        const banner = document.getElementById('status-banner');
+        banner.className = 'status-banner wrong';
+            banner.innerText = `정답은 [ ${getDisplayName(creature)} ] 입니다. 패배!`;
+        revealAllHints();
+        showResult(hintCount, true);
+    }
+
+    // 다음 생물로 이동
+    function nextCreature() {
+        currentIndex = pickDifferentCreature(currentIndex);
+        previousIndex = currentIndex;
+        initGame();
+    }
+
+    // 초기화 실행
+    initGame();
+</script>
+
+</body>
+</html>
